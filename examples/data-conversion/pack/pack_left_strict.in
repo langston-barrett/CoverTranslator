@@ -1,0 +1,95 @@
+set(prolog_style_variables).
+set(auto).
+
+% uncomment lines marked with BASE to perform base case
+% uncomment lines marked with STEP to perform step case
+
+list(usable).
+
+equal(X,X).
+
+% "sliced" from prelude
+
+equal(append(nil,Ys),        Ys).
+equal(append(cons(X,Xs),Ys), cons(X,append(Xs,Ys))).
+equal(append(undef,Ys),      undef).
+
+% a standard lemma
+
+equal(append(Xs,append(Ys,Zs)), append(append(Xs,Ys),Zs)).
+
+% the problem
+
+equal(pack(pair(T,Cs)), append(pack_(T),Cs)).
+equal(pack(undef),      undef).
+
+equal(pack_(l),      cons(o,nil)).
+equal(pack_(b(L,R)), append(cons(i,nil),append(pack_(L),pack_(R)))).
+equal(pack_(undef),  undef).
+
+equal(unpack(cons(o,Cs)), pair(l,Cs)).
+equal(unpack(cons(i,Cs)), pair(b(L,R),Cs__))
+  | -where_pair(pair(L,Cs_),  unpack(Cs))
+  | -where_pair(pair(R,Cs__), unpack(Cs_)).
+equal(unpack(undef),      undef).
+
+% seq
+
+equal(seq(undef, X),  undef).
+equal(seq(unit, X),   X).
+equal(seq(l, X),      X).
+equal(seq(b(L,R), X), X).
+
+equal(X,undef) | equal(X,unit) | equal(X,l) | equal(X,b(left(X),right(X))).
+
+% where pair
+
+where_pair(pair(X,Y),         pair(X,Y)).
+where_pair(pair(undef,undef), undef).
+
+% strictify
+
+equal(strictify(pair(T,Cs)), seq(T,pair(T_,seq(TPartial,Cs))))
+  | -where_pair(pair(T_,TPartial), strictify_(T)).
+equal(strictify(undef),      undef).
+
+equal(strictify_(undef),  undef).
+equal(strictify_(l),      pair(l,unit)).
+equal(strictify_(b(L,R)), pair(b(L_,seq(LPartial,R_)), seq(LPartial,RPartial)))
+  | -where_pair(pair(L_,LPartial), strictify_(L))
+  | -where_pair(pair(R_,RPartial), strictify_(R)).
+
+% approx
+
+equal(approx(0,    X), undef).
+equal(approx(s(N), l), l).
+equal(approx(s(N), b(L,R)), b(approx(N,L), approx(N,R))).
+
+equal(approxP(N,pair(T,Cs)), pair(approx(N,T),Cs)).
+equal(approxP(N,undef),      undef).
+
+% the property
+
+%-prop(T) | equal(unpack(pack(pair(T,Cs))), strictify(pair(T,Cs))).
+%prop(T) | -equal(unpack(pack(pair(T,some(T)))), strictify(pair(T,some(T)))).
+
+%-prop(N) | equal(approxP(N,unpack(pack(pair(T,Cs)))), approxP(N,strictify(pair(T,Cs)))).
+%prop(N) | -equal(approxP(N,unpack(pack(pair(some_t(N),some_cs(N))))), approxP(N,strictify(pair(some_t(N),some_cs(N))))).
+
+end_of_list.
+
+list(sos).
+
+% base case
+%-prop(0).        % BASE
+-equal(approxP(0,unpack(pack(pair(some_t,some_cs)))), approxP(0,strictify(pair(some_t,some_cs)))).
+
+equal(some_t, undef).
+equal(some_cs, undef).
+
+
+% step case
+%prop(n).     % STEP
+%-prop(s(n)). % STEP
+
+end_of_list.

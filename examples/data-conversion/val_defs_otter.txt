@@ -1,0 +1,70 @@
+% val(L)
+% val(B l r)
+% val(CB)
+% val(CL)
+% val([])
+% val(x:xs)
+% val((x,y))
+% 
+% val(x) | equal(x,bottom)
+
+% otter syntax below
+
+% If X is not a value, it must be bottom
+val(X) | equal(X,f_Main_bottom).
+-val(X) | -equal(X,f_Main_bottom).
+
+% Rules for datatypes:
+% data T = L | B T T
+val(app(app(c_Main_B,L),R)).
+val(c_Main_L).
+% data C = CB | CL
+val(c_Main_CB).
+val(c_Main_CL).
+% data [a] = [] | a:[a]
+val(c__Nil).
+val(app(app(c__Cons,X),XS)).
+% data (a,b) = (a,b)
+val(c__Pair(X,Y)).
+
+% ----------------
+% Selectors (skolem functions)
+equal(select_B_1(app(app(c_Main_B,L),R)),L).
+equal(select_B_2(app(app(c_Main_B,L),R)),R).
+
+equal(select_Cons_1(app(app(c__Cons,X),XS)),X).
+equal(select_Cons_2(app(app(c__Cons,X),XS)),XS).
+
+equal(select_Pair_1(app(app(c__Pair,X),Y)),X).
+equal(select_Pair_2(app(app(c__Pair,X),Y)),Y).
+
+% Rules for pattern matching functions:
+% NOTE: Rules seem to assume that right hand side is defined.
+
+-val(app(f_Main_pretty, P))
+  | equal(P,c__Pair(select_Pair_1(P), select_Pair_2(P))).
+
+-val(app(f_Main_prettyzq1, T))
+  | equal(T,c_Main_L)
+  | equal(T,app(app(c_Main_B,select_B_1(T)),select_B_2(T))).
+
+-val(app(app(f_Main_zpzpzp,XS),YS))
+  | equal(XS, c__Nil)
+  | equal(XS, app(app(c__Cons, select_Cons_1(XS)),select_Cons_2(XS))).
+
+-val(app(app(f_Main_prettyStep, P), T))
+  | equal(T,c_Main_L)
+  | equal(T,app(app(c_Main_B,select_B_1(T)),select_B_2(T))).
+
+-val(app(app(f_Main_parseStep, P), XS))
+  | equal(XS, app(app(c__Cons, c_Main_CB),select_Cons_2(XS)))
+  | equal(XS, app(app(c__Cons, c_Main_CL),select_Cons_2(XS))).
+
+-val(app(app(f_Main_strictifyStep, S), P))
+  | equal(P,c__Pair(c_Main_L, select_Pair_2(P)))
+  | equal(P,c__Pair(app(app(c_Main_B,L),R), select_Pair_2(P))).
+
+% Possibly L and R above should be select_something(...B...).
+
+-val(app(app(f_Main_prettyFix, Q), P))
+  | equal(P,c__Pair(select_Pair_1(P), select_Pair_2(P)))

@@ -1,0 +1,33 @@
+Comments about some files
+
+  AbsAlfa.hs 
+  PrintAlfa.hs  These files have been created by bnfc from
+                Agda/src/bnf/Alfa.cf.  Do not edit!
+
+
+Overview of CoverTranslator architecture:
+
+  Main.main parses input flags, loadFile does the main job, output to
+       files using outputProofObligations (and chosen pretty printer)
+
+  Main.loadFile: The main phases: 
+    parseCore
+    caseAbstract
+    lambdaLift
+    core2cl
+    cl2fol
+
+Pretty-printing: {- a mess ;-}
+  Three different Doc types used
+    PprExternalCore.lhs uses Language.Haskell.Pretty
+    BNFC-generated code (Cl/Print.hs etc.) uses special version
+    FolPP.hs uses Text.PrettyPrint.HughesPJ
+
+  Similar interface: 
+    The three diferent moduls all provide
+      data/type Doc -- with different implementations
+      render :: Doc -> String
+    Language.Haskell.Pretty   exports Show Doc instance
+    Text.PrettyPrint.HughesPJ exports Show Doc instance
+    Cl.Print          does not export Show Doc instance
+

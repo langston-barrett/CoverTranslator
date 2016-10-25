@@ -1,0 +1,2 @@
+prelude.agda contains agda definitions for some prelude functions and 
+is used by the Translator.

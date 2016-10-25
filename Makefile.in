@@ -1,0 +1,28 @@
+VERSION=0.3
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+libdir = @libdir@
+
+INSTALL = @INSTALL@
+
+all: 
+	(cd src; $(MAKE))
+
+install: all
+	${INSTALL} -d ${bindir}
+	${INSTALL} cfop hs2agda src/CoverTranslator ${bindir}
+
+doc:
+	(cd src; $($(MAKE)) doc)
+
+clean:
+	rm -f *~ 
+	(cd src; $(MAKE) clean)
+	(cd examples/queue; ${MAKE} clean)
+
+distclean: clean
+	rm -rf autom4te.cache cfop hs2agda
+	rm -f config.log config.status configure Makefile
+	(cd src; $(MAKE) distclean)

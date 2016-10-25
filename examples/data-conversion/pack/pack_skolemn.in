@@ -1,0 +1,49 @@
+set(prolog_style_variables).
+set(auto).
+
+% uncomment lines marked with BASE to perform base case
+% uncomment lines marked with STEP to perform step case
+
+list(usable).
+
+equal(X,X).
+
+% "sliced" from prelude
+
+equal(append(nil,Ys),        Ys).
+equal(append(cons(X,Xs),Ys), cons(X,append(Xs,Ys))).
+
+% a standard lemma
+
+equal(append(Xs,append(Ys,Zs)), append(append(Xs,Ys),Zs)).
+
+% the problem
+
+equal(pack(pair(T,Cs)), append(pack_(T),Cs)).
+
+equal(pack_(l),      cons(o,nil)).
+equal(pack_(b(L,R)), append(cons(i,nil),append(pack_(L),pack_(R)))).
+
+equal(unpack(cons(o,Cs)), pair(l,Cs)).
+equal(unpack(cons(i,Cs)), pair(b(L,R),Cs__))
+  | -equal(pair(L,Cs_),  unpack(Cs))
+  | -equal(pair(R,Cs__), unpack(Cs_)).
+
+% the property
+
+-prop(T) | equal(unpack(pack(pair(T,Cs))), pair(T,Cs)).
+prop(T) | -equal(unpack(pack(pair(T,some(T)))), pair(T,some(T))).
+
+end_of_list.
+
+list(sos).
+
+% base case
+%-prop(l).        % BASE
+
+% step case
+prop(t1).        % STEP
+prop(t2).        % STEP
+-prop(b(t1,t2)). % STEP
+
+end_of_list.

@@ -1,0 +1,92 @@
+make || more cfop.log
+(cd ../.. && make && sudo make install)
+
+041020: Patrik Jansson & Koen Claessen
+
+  Added Koens unfinished work on this data-conversion example in
+    subdirectory pack.
+
+  pack.cl             -- the definition of the program (in almost Haskell)
+  pack.in             -- Simple case ignoring bottoms
+  pack_skolemn.in     -- Equivalent to pack.in - just a rewrite of
+                         the property
+  pack_undef.in       -- bottoms included, but strict pairs
+  pack_left_strict.in -- Tries to handle bottoms correctly
+
+  Koen warns that these file may still be buggy (especially left_strict).
+
+041019: Patrik Jansson
+
+  Added more rules to val_defs_otter.txt trying to remember the idea
+    presented by Koen: 
+
+    val(fully_applied_lhs) => some constructor matched.
+
+041019: Patrik Jansson + Nils Anders Danielsson
+
+  Introducing Nisse to the tool and the example. Transforming the
+    example to make it run with cfop. (Changed Char type to a datatype
+    with only two constructors to avoid problems with wildcards in
+    pattern matching [1].) 
+
+  Started working on adding the "reverse reasoning" predicate
+    suggested by Koen. First step is to add it "by hand" and only
+    later automate it (add it to the translator).
+
+  [1] TODO: add wildcard handling to the translator - one could add a
+    case matching a variable and add a guard with the negation of the
+    other patterns.
+
+041018: Patrik Jansson
+
+  Below bug fixed - new problem: 
+
+    "Fail: Core2Cl.c2cAlf: No defaults in CL. Case branch was: %_ -> fail"
+
+  The problem is with incomplete pattern matches - changing the
+    translator might be a bit heavy. Changing the input program may be
+    a possibility. (Match on [] is easy, but explicitly matching on
+    all characters but 'B' and 'L' is tiresome. Perhaps change to the
+    program with the special type instead of Char.)
+
+041017: Patrik Jansson
+
+  Tracking down a bug: 
+    translation stops with (after simplification):
+
+      Fail: LambdaLifting.envBindOfVar: "fail" not found in 
+	[("cs",  cs::[Char]),
+	 ("ds1", ds1::Char),
+	 ("wild",wild::[Char]),
+	 ("wild",wild::[Char]),
+	 ("ds",  ds::[Char])]
+
+  "fail" is definied in the ghc-generated .hcr file in a local let. I
+  don't think ghc would use it out of its scope. It remains to find
+  which call is causing the error, and why.
+
+  Trying to use Hugs.Observe, but the parser uses ghc-only extensions.
+
+  OK, try the hard way:
+    envBindOfVar is called at 
+      LambdaLifting.applySolutionToVdef:178
+      LambdaLifting.applySolutionToExp:190
+
+    applySolutionToExp is called at
+      LambdaLifting.plExp:107
+
+    applySolutionToVdef is called at
+      LambdaLifting.plVdef:103
+
+    Only Lam, Case, pattern match use envAddBind to change the
+      environment. The Let case is complex (LambdaLifting.plExp:115-157)
+      but plExp is called with an extended environment s' =
+      (envConcatBinds s vfs). This extension is only to the end_binds
+      component, while envAddBind extends the env_vtypes component.
+
+    (The environment is not extended when plExp is called for the RHS of
+      the top definitions in a group,)
+
+  Changed plExp and splitVars (not a good name after change) to extend
+    the environment with the defined names when translating exp from
+    "let ... in exp". 

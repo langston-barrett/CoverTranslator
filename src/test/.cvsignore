@@ -1,0 +1,6 @@
+*.hi
+*.hcr
+Newtype.agda
+existentialType.agda
+parigotNaturalNumbers.agda
+*.debug_CoverTranslator

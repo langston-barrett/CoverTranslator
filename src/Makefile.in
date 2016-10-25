@@ -1,0 +1,42 @@
+SHELL = /bin/sh
+
+HAPPY = @HAPPY@
+ALEX = @ALEX@
+GHC = @GHC@ -fglasgow-exts
+HADDOCK = @HADDOCK@
+
+HAPPY_OPTS = -acg
+
+default: CoverTranslator
+
+CoverTranslator: Agda/Abs.hs Cl/Abs.hs Main.hs ParserExternalCore.hs \
+	CaseAbstraction.hs LambdaLifting.hs Core2Agda.hs Core2Cl.hs Cl2Fol.hs \
+	Fol.hs FolPP.hs FoFrontEnd.hs UnObfusc.hs
+	$(GHC) --make -package text Main.hs -o CoverTranslator
+
+PREFIX	    = ${HOME}
+BINDIR      = ${PREFIX}/bin
+EXECUTABLES = CoverTranslator  
+
+install: CoverTranslator
+	cp ${EXECUTABLES} ${BINDIR}
+
+%.hs : %.x
+	$(ALEX) $<
+
+%.hs : %.y
+	$(HAPPY) $(HAPPY_OPTS) $<
+
+clean:
+	rm -f *~ *.o *.hi *.hcr Main CoverTranslator ParserExternalCore.info \
+		ParserExternalCore.hs 
+
+distclean: clean
+	rm -rf doc Makefile
+
+doc:
+	mkdir -p doc
+	$(HADDOCK) -o doc -h CaseAbstraction.hs LambdaLifting.hs Core2Agda.hs \
+		Core2Cl.hs
+
+.PHONY: doc clean distclean

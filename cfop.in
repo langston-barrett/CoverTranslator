@@ -1,0 +1,279 @@
+#! @PERL@
+# This is @configure_input@
+
+use strict;
+use warnings;
+use diagnostics;
+
+package Prover;
+
+sub new {
+    my ($class) = @_;
+    my $self = {
+        _name => undef,
+    };
+    bless $self, $class;
+    return $self;
+}
+
+sub run {
+    printf ("Calling the prover on file @_");
+}
+
+#######################################################################
+# Gandalf
+####
+package Gandalf;
+our @ISA = qw(Prover);
+
+sub name { return "Gandalf"; }
+
+sub run {
+    my ($self, $file, $log) = @_;
+    my $pipe = undef;
+    my $success = 0;
+
+    open $pipe, "@GANDALF@ $file 2>/dev/null | tee $log |";
+    while (<$pipe>) {
+        if (/^.*GANDALF_FOUND_A_REFUTATION.*/) {
+            $success = 1;
+        }
+    }
+    return $success;
+}
+
+sub flag {
+    return "-o";
+}
+   
+#######################################################################
+# Otter
+####
+package Otter;
+our @ISA = qw(Prover);
+
+sub name { return "Otter"; }
+
+sub run {
+    my ($self, $file, $log) = @_;
+    my $pipe = undef;
+    my $success = 0;
+
+    open $pipe, "otter < $file 2>/dev/null | tee $log |";
+    while (<$pipe>) {
+        if (/^That finishes the proof of the theorem./) {
+            $success = 1;
+        }
+    }
+    return $success;
+}
+
+sub flag {
+    return "-o";
+}
+
+#######################################################################
+# Main program
+####
+package Main;
+
+use Getopt::Long;
+use Pod::Usage;
+use File::Basename;
+
+# autoconf stuff
+my $prefix      = "@prefix@";
+my $exec_prefix = "@exec_prefix@";
+my $bindir      = "@bindir@";
+my $libdir      = "@libdir@";
+
+my @loadFiles   = ();
+my @incFiles    = ();
+
+my $help        = 0;
+my $man         = 0;
+
+my $prover      = undef;
+
+my %options;
+
+sub setDefaultOptions {
+    $options{'verbose'}         = 0;
+    $options{'prover'}          = 'gandalf';
+    $options{'ghc'}             = 'ghc';
+    $options{'CoverTranslator'} = "${bindir}/CoverTranslator";
+    $options{'gandalf'}         = 'gandalf';
+    $options{'otter'}           = 'otter';
+    $options{'logFile'}         = 'cfop.log';
+}
+
+sub readConfigFile {
+    my $config = undef;
+
+    open ($config, "< @_") or return ();
+    while (<$config>) {
+        chomp;                  # no newline
+        s/#.*//;                # no comments
+        s/^\s+//;               # no leading white
+        s/\s+$//;               # no trailing white
+        next unless length;     # anything left?
+        my ($var, $value) = split(/\s*=\s*/, $_, 2);
+        $options{$var} = $value;
+    } 
+}
+
+sub readCommandLine {
+    GetOptions("translator=s" => \$options{'CoverTranslator'},
+               "prover=s" => \$options{'prover'},
+               "verbose=i" => \$options{'verbose'},
+               "load=s" => \@loadFiles,
+	       "include=s" => \@incFiles,
+               "help|?" => \$help,
+               "man" => \$man) or pod2usage(2);
+
+    pod2usage(1) if $help;
+    pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+    
+    if ($options{'prover'} eq "gandalf") {
+        $prover = new Gandalf ();
+    } else {
+        if ($options{'prover'} eq "otter") {
+            $prover = new Otter ();
+        } else {
+            printf ("Error - unsupported prover: $options{'prover'}\n");
+            pod2usage(1);
+        }
+    }
+
+    if ($ARGV[1]) {
+        print STDERR "Error: can only process one file at a time\n";
+        pod2usage(0);
+        exit -1;
+    }
+    if (!$ARGV[0]) {
+        print STDERR "Error: no input file given\n";
+        pod2usage(0);
+        exit -1;
+    }
+}
+
+sub hs2hcr {
+    system ("$options{'ghc'} -c -fext-core -i${libdir}/CoverTranslator @_ 2>>$options{'logFile'}") == 0;
+}
+
+sub hcr2fol {
+    system ("$options{'CoverTranslator'} @_ 2>>$options{'logFile'}") == 0;
+}
+
+setDefaultOptions ();
+readConfigFile ("$ENV{HOME}/.coverrc");
+readCommandLine ();
+
+unlink ($options{'logFile'});
+
+my $f = undef;
+my $argLoad = '';
+# Pass along verbosity argument to CoverTranslator
+if (defined($options{'verbose'})) { $argLoad = "-v $options{'verbose'}" }
+foreach $f (@loadFiles) {
+    my ($base,$path,$ext) = fileparse ($f,('.hs', '.hcr'));
+    if ($ext eq ".hs") { 
+        if ($options{'verbose'} > 1) { print "Compiling $f to core... "; }
+        hs2hcr $f or exit -1; 
+        if ($options{'verbose'} > 1) { print "done\n"; }
+    }
+    $argLoad = $argLoad . " -l $base.hcr";
+}
+foreach $f (@incFiles) {
+    my ($base,$path,$ext) = fileparse ($f,('.hs', '.hcr'));
+    if ($ext eq ".hs") { 
+        if ($options{'verbose'} > 1) { print "Compiling $f to core... "; }
+        hs2hcr $f or exit -1; 
+        if ($options{'verbose'} > 1) { print "done\n"; }
+    }
+    $argLoad = $argLoad . " -i $base.hcr";
+}
+
+my $file = $ARGV[0];
+my ($base,$path,$ext) = fileparse ($file,('.hs', '.hcr'));
+if ($ext eq ".hs") { 
+    if ($options{'verbose'} > 1) { print "Compiling $file to core... "; }
+    hs2hcr $file or exit -1; 
+    if ($options{'verbose'} > 1) { print "done\n"; }
+}
+
+if ($options{'verbose'} > 1) { print "Translating to FOL... "; }
+hcr2fol ($prover->flag, $argLoad, "$base.hcr") or exit -1;
+if ($options{'verbose'} > 1) { print "done\n"; }
+
+my $dir;
+opendir($dir, $path) || exit -1;
+my @pblFiles = grep { /^${base}_prop_.*\.otter$/ && -f "$path/$_" } 
+                 readdir($dir);
+closedir $dir;
+
+if ($options{'verbose'} > 0) { 
+    printf ("using prover: %s\n", $prover->name ()); 
+}
+
+foreach $f (@pblFiles) {
+    $f =~ m/${base}_prop_(.*)\.otter/;
+    my $pbl = $1;
+    my $log = ${base} . "_prop_" . ${pbl} . ".log";
+    if ($options{'verbose'} > 1) { print "trying to prove $f\n"; }
+    ($prover->run ($f,$log) && print "++ $pbl proved\n")
+        || print "-- $pbl failed\n";
+}
+
+exit 0;
+
+#######################################################################
+# Documentation follows
+####
+
+__END__
+
+
+=head1 NAME
+
+cfop - Proving properties of Haskell programs using first order proves
+
+=head1 SYNOPSIS
+
+cfop [options] file
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<-load> <file>
+
+Load a Haskell (.hs) or core (.hcr) file. The file will be compiled to 
+core if necessary and the properties it contains can be used as lemmas.
+
+=item B<-prover> <prover>
+
+Select which theorem prover to use. Supported theorem provers are:
+C<gandalf>, C<otter>.
+
+=item B<-help>
+
+Print a brief help message and exits.
+
+=item B<-man>
+
+Prints the manual page and exits.
+
+=item B<-verbose>
+
+Select verbose mode.
+
+=back
+
+=head1 DESCRIPTION
+
+B<This program> will read the given input file(s) and do someting
+useful with the contents thereof.
+
+=cut
+

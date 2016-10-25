@@ -1,0 +1,343 @@
+\documentclass{article}
+
+\usepackage[bookmarks=true,hyperindex=true,colorlinks=true,
+  backref=true,pagebackref=false]{hyperref}
+
+\usepackage{color}
+\usepackage{alltt}
+\usepackage{xspace}
+\usepackage{amssymb}
+\usepackage[final]{graphicx}
+
+\newsavebox{\fmbox}
+\newenvironment{fmpage}[1]
+               {\begin{lrbox}{\fmbox}\begin{minipage}{#1}}
+               {\end{minipage}\end{lrbox}\fbox{\usebox{\fmbox}}}
+
+\newenvironment{note}
+  {\paragraph {Note:}}
+  {}
+
+\newenvironment{shellcode}
+  {\begin{alltt}\rule{7cm}{1pt}}
+  {\rule{7cm}{1pt}\end{alltt}}
+
+\newcommand{\cfop}{{\tt cfop}\xspace}
+\newcommand{\haskell}{{\sc Haskell}}
+
+\title{\cfop\ - First Order Theorem Proving for \haskell}
+\author{Gr\'egoire Hamon\footnote{\tt hamon@cs.chalmers.se}}
+
+\begin{document}
+
+\maketitle
+
+\section{Installation}
+
+There are two ways to install the tools: from a {\tt tar} file, and
+from {\tt CVS}. If you just want to use the tools, the {\tt tar} is
+advised as installation should be easier. {\tt cfop} uses external
+tools, namely {\tt ghc} and one (or several) first order provers, I'll
+briefly cover installation of some these (not {\tt ghc} which you
+already have, don't you? a recent version of {\tt ghc} is
+required). 
+
+All those information are given for a {\sc Unix} system. The tools
+probably work under {\sc Windows} as well, but that has not been
+tested, not even installed.
+
+Only basic installation is covered here, if you run into trouble, or
+want to change the tools configuration, see section~\ref{sec:usage}.
+
+\subsection{Installing from a {\tt tar} file}
+\label{sec:from-tt-tar}
+Installation from a {\tt tar} file should be straightforward. You need
+to get a file {\tt CoverTranslator-{\it version}.tar.gz}. If you have
+access to Chalmers machines, this file can be found in {\tt
+/users/cs/group\_proglog/home/Cover/Automatic/}. Then do the following
+(example here is using version 0.3, which is the current when writing
+this):
+\begin{shellcode}
+\$ {\color{red}tar -zxf CoverTranslator-0.3.tar.gz}
+\$ {\color{red}cd CoverTranslator-0.3}
+\$ {\color{red}./configure --prefix={\color{blue}\textit{prefix\_dir}}}
+\$ {\color{red}make}
+\$ {\color{red}make install}
+\end{shellcode} 
+where {\tt\it\color{blue}prefix\_dir} is the installation directory
+(default: {\tt /usr/local/}). After installation, the programs {\tt
+CoverTranslator}, {\tt cfop}, and {\tt hs2agda} are copied into
+{\tt{\it\color{blue}prefix\_dir}/bin}.
+
+\subsection{From the {\tt CVS} repository}
+Installing from {\tt CVS} shouldn't be much more complicated, but it
+needs a recent version of {\tt bnfc} (that is, a {\tt CVS}
+version). The {\tt configure} script in the distribution should take
+care of checking if {\tt bnfc} can be found, downloading and compiling
+it if necessary. However, this requires you have access to the {\tt
+bnfc} repository (and enough rights on it). I don't cover the {\sc
+Cover} {\tt CVS} repository and its use, that's detailed on the
+\href{http://coverproject.org/Wiki/oddmuse.cgi/Cover_CVS_repository}{Wiki}. If
+all goes well the following commands should get you up and running:
+\begin{shellcode}
+\$ {\color{red}cvs co CoverTranslator}
+\$ {\color{red}cd CoverTranslator}
+\$ {\color{red}autoconf}
+\$ {\color{red}./configure --prefix={\color{blue}\textit{prefix\_dir}}}
+\$ {\color{red}make}
+\$ {\color{red}make install}
+\end{shellcode} 
+see~\ref{sec:from-tt-tar} for details on {\tt\it\color{blue}prefix\_dir}.
+
+\subsection{Installing First Order Provers}
+
+\subsubsection{Installing {\tt gandalf}}
+{\tt gandalf} homepage is: \url{http://sise.ttu.ee/it/gandalf/}. To
+install the prover, download the {\tt tar} file ({\tt
+gandalf26r1.tar.gz}\footnote{\url{http://sise.ttu.ee/it/gandalf/gandalf26r1.tar.gz}}
+when this is written). Installation then goes as follows:
+\begin{shellcode}
+\$ {\color{red}tar -zxf gandalf26r1.tar.gz}
+\$ {\color{red}cd gandalf26}
+\$ {\color{red}make}
+\end{shellcode} 
+This should build the program. Upon completion, you can copy {\tt
+GPLGandalf/gandalf} and {\tt GPLGandalf/zchaff} somewhere in your path
+(not mandatory, but you'll have to configure {\tt cfop} with the
+correct path otherwise).
+
+\subsubsection{Installing {\tt otter}}
+{\tt otter} homepage is:
+\url{http://www.mcs.anl.gov/AR/otter/}. To install the prover,
+download the {\tt tar} file ({\tt
+otter-3.3f.tar.gz}\footnote{\url{http://www.mcs.anl.gov/AR/otter/dist33/otter-3.3f.tar.gz}}
+when this is written). Installation then goes as follows:
+\begin{shellcode}
+\$ {\color{red}tar -zxf otter-3.3f.tar.gz}
+\$ {\color{red}cd otter-3.3f}
+\$ {\color{red}make install}
+\end{shellcode} 
+This should copy pre-build binaries in {\tt bin/}. You can keep them
+here (this will require configuration of {\tt cfop}, or copy {\tt
+bin/otter} and {\tt bin/mace2} somewhere in your path.
+
+\section{Short Tutorial: the queue example}
+
+I consider here a very simple example: the queue example\footnote{code
+for this example can be found in the distribution in the {\tt
+example/queue/} directory.}. The {\sc Haskell} program we are looking
+at is the following:
+\begin{shellcode}
+module Queue where 
+
+type Queue a     = [a]
+empty            = []
+add x q          = q ++ [x]
+isEmpty q        = null q
+front  (x:q)     = x
+remove (x:q)     = q
+
+type QueueI a    = ([a], [a])
+emptyI           = ([],[])
+addI x (f,b)     = flipQ (f, x:b)
+isEmptyI (f,b)   = null f
+frontI  (x:f, b) = x
+removeI (x:f, b) = flipQ (f, b)
+flipQ ([], b)    = (reverse b, [])
+flipQ q          = q
+
+retrieve :: QueueI Integer -> Queue Integer
+retrieve  (f,b) = f ++ (reverse b)
+
+invariant :: QueueI Integer -> Bool
+invariant (f,b) = null b || not (null f)
+\end{shellcode}
+It defines two implementations of queues: a simple one (type {\tt
+Queue}), and an efficient one (type {\tt QueueI}). The {\tt retrieve}
+function takes an efficient queue and returns a corresponding simple
+queue.
+
+First, we would like to prove that retrieving the empty efficient
+pqueue, we get the empty queue. \cfop reads properties written directly
+in {\sc Haskell}, using a special type {\tt Prop}, and operation over
+this type defined in the module {\tt Property}\footnote{this module
+can be found in the distribution in the {\tt lib/} directory}. Using
+those constructions, our property can be written as:
+\begin{shellcode}
+prop_empty = retrieve emptyI === empty
+\end{shellcode}
+Properties are {\sc Haskell} values which name is starting with the
+prefix {\tt prop\_}, and they should be of type {\tt Prop}. Here, we
+use the {\tt (===)} operator, defined by the property module, and
+whose type is {\tt (===) :: a -> a -> Prop}. We can now try to prove
+the property, assuming the program is saved in a file {\tt queue.hs}:
+\begin{shellcode}
+\$ {\color{red}cfop queue.hs}
+-- empty failed
+\end{shellcode}
+Not a huge success, it reports that it failed to prove the
+property. When given a {\sc Haskell} file, \cfop generates a first
+order problem from each property found in the file, tries to prove it
+using a first order prover, and reports success or failure. Why can't
+it prove such a simple property? {\tt retrieve} is defined by means of
+{\tt (++)} and {\tt reverse}, imported from the Haskell prelude, and
+for which we don't know anything. We need some lemmas over those to
+establish the result. The module {\tt PropPrelude}\footnote{also found
+in {\tt lib/} in the distribution} contains properties over some
+prelude functions. Looking at it, it contains two properties which we
+could use:
+\begin{shellcode}
+prop_reverse_nil  = (reverse []) ===  []
+prop_append_nil_1 = forAll \$ \(\backslash\)xs -> ( xs ++ [] ) ===  xs 
+\end{shellcode}
+The second one uses another operator from the {\tt Property} module:
+{\tt forAll} which takes a function returning a property. To use those
+as lemmas in order to prove our property, we import the {\tt
+PropPrelude} module, and we hint their use in the definition of the
+property using the {\tt using} construction:
+\begin{shellcode}
+prop_empty = 
+    using [ prop_reverse_nil, prop_append_nil_1 ] \$
+    retrieve emptyI === empty
+\end{shellcode}
+Let's try to prove the property once again:
+\begin{shellcode}
+\$ {\color{red}cfop -l PropPrelude.hs queue.hs}
+++ empty proved
+\end{shellcode}
+That's a more satisfying result. We can get more information on what
+the tool is doing by increasing the verbosity level:
+\begin{shellcode}
+\$ {\color{red}cfop {\color{blue}-v 2} -l PropPrelude.hs queue.hs}
+Compiling PropPrelude.hs to core... done
+Compiling queue.hs to core... done
+Translating to FOL... done
+using prover: Gandalf
+trying to prove queue_prop_empty.otter
+++ empty proved
+\end{shellcode}
+First, all the files are compiled to {\tt ghc} core language. Then the
+file on which we want to prove properties is translated to first order
+logic, one file, containing one first order problem is generated for
+each property. This file contains the definitions used by the property
+and all lemmas specified by the {\tt using} operation. Finally the
+prover (here {\tt gandalf} is used to prove the property. We can also
+use {\tt otter}:
+\begin{shellcode}
+\$ {\color{red}cfop -v 1 {\color{blue}-p otter} -l PropPrelude.hs queue.hs}
+using prover: Otter
+trying to prove queue_prop_empty.otter
+++ empty proved
+\end{shellcode}
+The actual proof found by the prover is saved in a file named {\tt
+queue\_prop\_empty.log}. 
+
+Consider now another property: adding an element to an efficient
+queue, then retrieving the result is equal to adding this element to
+the queue retrieved from the efficient queue. In {\sc Haskell} terms:
+\begin{shellcode}
+prop_add =
+    forAll \$ \(\backslash\)x -> 
+    forAll \$ \(\backslash\)b -> 
+      retrieve (addI x (xs, b)) === add x (retrieve (xs, b))
+\end{shellcode}
+Unfortunately, this property can not be proved as is. We need
+induction.  We can prove separately the base case and the step case:
+\begin{shellcode}
+prop_add_base = 
+    using [ prop_append_nil_1, prop_append_nil_2, 
+            prop_reverse_nil, prop_reverse_cons ] $
+    forAll \$ \(\backslash\)x -> 
+    forAll \$ \(\backslash\)b -> 
+      retrieve (addI x ([], b)) === add x (retrieve ([], b))
+
+prop_add_step = 
+    using [ prop_append_assoc, prop_reverse_cons ] $
+    forAll \$ \(\backslash\)y  -> 
+    forAll \$ \(\backslash\)ys -> 
+    forAll \$ \(\backslash\)x  -> 
+    forAll \$ \(\backslash\)b  -> 
+      retrieve (addI x (y:ys, b)) === add x (retrieve (y:ys, b))
+\end{shellcode}
+As we can see in this definition, several new lemmas are used here,
+these can be found in the {\tt PropPrelude} module. We can now prove
+those:
+\begin{shellcode}
+\$ {\color{red}cfop -l PropPrelude.hs queue.hs}
+++ add_base proved
+++ add_step proved
+++ empty proved
+\end{shellcode}
+
+\section{Usage}
+\label{sec:usage}
+
+\subsection{Command line options}
+The \cfop program recognizes the following options:
+\begin{itemize}
+\item {\tt -load {\it file}} -- load a library file. Properties
+contained in the file can be used as lemmas.
+\item {\tt -prover {\it prover}} -- select first order theorem prover to use,
+currently {\tt gandalf} and {\tt otter} are supported.
+\item {\tt -verbose {\it level}} -- select the verbosity level, that
+is an integer, the greater the level, the more verbose the program is
+(currently, level 2 is enough to get all informations).
+\end{itemize}
+Those options can be abbreviated ({\it e.g.} {\tt -l \it file}, {\tt
+  -p \it otter}, ...). They override any default options or options
+set using a configuration file.
+
+\subsection{Configuration File}
+\label{sec:configuration-file}
+The program also reads a configuration file in {\tt
+\$HOME/.coverrc}. This file should contain assignments of the form
+{\tt \it option = value}. An example {\tt coverrc} file is given in
+the {\tt lib/} directory of the distribution. The recognized options
+are: 
+\begin{itemize}
+\item {\tt verbose} -- verbosity level,
+\item {\tt prover} -- which prover to use ({\tt gandalf} or {\tt otter}),
+\item {\tt ghc} -- command to use for {\tt ghc} (if it's not in the path for 
+  example),
+\item {\tt CoverTranslator} -- command to use for {\tt CoverTranslator},
+\item {\tt gandalf} -- command to use for {\tt gandalf},
+\item {\tt otter} -- command to use for {\tt otter},
+\item {\tt logFile} -- name of the file where logs should be printed.
+\end{itemize}
+
+\subsection{Log Files}
+\label{sec:log-files}
+\cfop records information about what it's doing in a log file, by
+default {\tt cfop.log} in the current directory (this can be
+overridden in a configuration file, see~\ref{sec:configuration-file}).
+If the tool doesn't behave as expected, look into this file, the error
+can come from {\tt ghc}, in which case your program has probably a
+problem, or can come from {\tt CoverTranslator}, in which case you
+have certainly found a bug (that's too be expected in the current
+state of the tool).
+
+\section{Frequently Asked Question}
+Well, nobody had used it yet, so those are just questions which should
+get answered soon (hopefully).
+
+\begin{description}
+\item[What about other provers? tptp format?] the tptp backend
+doesn't currently work, but should be fixed soon. Adding support for
+other provers in the tool should be trivial.
+
+
+\item[I tried this formula: ... and the tool broke!]  that's expected
+in the current state. There are lots of known (or unknown) issues
+left, both in the translation to FOL and in the support for
+properties. This release is for people to try it and give their
+opinion it's not ready for general use yet.
+
+\item[The {\tt PropPrelude} module doesn't contain anything...]
+it only contains  what was needed to make the example work. It would be
+nice if people could add properties to it (and even better: prove
+them, for that of course, you need the definitions from the prelude,
+for now you can just put the code and the property in a separate
+module, before we find a better way to do that).
+\end{description}
+
+\end{document}

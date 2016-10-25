@@ -1,0 +1,7 @@
+*.hi
+*.hcr
+Merge.agda
+Simple.agda
+failed1-Merge.thy
+save_Simple.hcr
+trash_Merge.thy

@@ -1,0 +1,6 @@
+*.hi
+*.hcr
+Queue.agda
+AgdaQueue.agda
+PropPrelude.agda
+PredPrelude.agda

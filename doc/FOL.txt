@@ -1,0 +1,11 @@
+Otter: 
+  http://www-unix.mcs.anl.gov/AR/otter/dist33/otter-3.3b.tar.gz
+  tar -zxf otter-3.3b.tar.gz 
+  cd otter-3.3b
+  make install
+  
+Gandalf:
+  http://sise.ttu.ee/it/gandalf/
+  wget http://sise.ttu.ee/it/gandalf/gandalf26r1.tar.gz
+
+

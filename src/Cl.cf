@@ -1,0 +1,55 @@
+-- The CL language
+
+comment "--";
+
+layout "where" ;
+layout toplevel ;
+
+entrypoints Module, Clause ;
+
+-- Local.    Id ::= Ident;
+-- Import.   Id ::= Ident Ident;
+
+Qname.    Id ::= Ident "_" Ident;
+
+Evar.	  Exp1 ::= Id;
+Efun.	  Exp1 ::= Id;
+Econ.	  Exp1 ::= Id;
+Eapp.	  Exp0 ::= Exp Exp1;
+	  
+_.	  Exp  ::= Exp0 ;
+_.        Exp0 ::= Exp1 ;
+_.    	  Exp1 ::= "(" Exp ")" ;
+	  
+Pvar.	  Pat ::= Id;
+Pcon.	  Pat ::= "(" Id [Pat] ")";
+	  
+Guard.	  Guard ::= "|" [Exp];
+	  
+Def.	  Def ::= Pat "=" Exp;
+	  
+Loc.	  Local ::= "where" [Def];
+	  
+Cl.	  Clause ::= Id [Pat] [Guard] "=" Exp [Local] ;
+	  
+Lpos.	  Lit ::= Exp "=" Exp ;
+Lneg.	  Lit ::= "not" "(" Exp "=" Exp ")";
+Linline.  Lit ::= Id ;
+Lninline. Lit ::= Id ;
+
+PCl. Pcl ::= [Lit] ;
+
+Property. PropCl ::= Id [Id] [Pcl] [Pcl] ;
+
+Mod.  Module ::= [Clause] "\n-- Properties\n" [PropCl];
+
+separator Clause "\n" ;
+separator PropCl "\n" ;
+separator Pat "" ;
+separator Guard "" ;
+separator Local "" ;
+separator nonempty Exp "," ;
+separator nonempty Def "," ;
+separator Lit "|" ;
+separator Pcl "\n" ;
+separator Id "," ;

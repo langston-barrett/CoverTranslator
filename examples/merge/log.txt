@@ -1,0 +1,104 @@
+040930: PJ: changing CaseAbstraction flag to actually do change some
+  cases.
+
+  Now the translator works much better!
+
+  Merge.hs now contains a number of properties and a few can actually
+  be proved.
+
+  Note that the definition of unitify has been made monotyped -
+    otherwise GHC creates a local let rec which CoverTranslator does not
+    handle correctly yet.
+
+040929: PJ: More bug-finding: why does queue work when merge is so
+  buggy?
+
+  Answer: plain luck! - ghc inlines everything, slice include 0 lines
+    from the (non-property) Haskell definitions!
+
+  make CFOP_FLAGS='-v 2'
+
+  Gives queue.hcr.cl.debug_CoverTranslator containing, for example,
+    the following nonsense clauses: (overlapping, and with no relation
+    between LHS ds and RHS ds1, b)
+
+    flipQ ds = _Pair ds1 b 
+    flipQ ds = _Pair (_reverse b) _Nil 
+
+  The state after case abstraction and after lambda lifting is
+    identical (many case expressions remain)
+
+  But almost no code is actually used - the otter file for the base
+  case (for example) only lists lemmas and _no code_ from the "real
+  program" in queue.hs. The translation could do basically anything
+  without it being detected.
+
+  OK, so time to analyse what the phases should be doing (based again
+  on the merge example).
+
+040929: PJ: Trying to pinpoint error location based on debug info.
+
+  Underscores are still problematic
+
+  (Good to know: I'm using 
+
+    make CFOP_FLAGS='-v 1'
+
+  )
+
+  The current bug symptom is the following snippet from 
+    Merge_prop_msort_ordered_040929.otter:
+
+    equal(app(f_Merge_ordered, V_Merge_ds), app(app(f__boolean_and, app(app(f_Simple_less, V_Merge_x), V_Merge_y)), app(f_Merge_ordered, app(app(c__Cons, V_Merge_y), V_Merge_ds2)))).
+    equal(app(f_Merge_ordered, V_Merge_ds), c__true).
+    equal(app(f_Merge_ordered, V_Merge_ds), c__true).
+
+  Bug 1: Nonsense clause (ds, x, y, ds2 should be related)
+    ordered ds === less x y  &&  ordered (y:ds2)
+  Bug 2: "contradictory" clauses: 
+    ordered ds === less x y  &&  ordered (y:ds2)
+    ordered ds === True
+  Bug 3: same clause appears twice. (harmless)
+    ordered ds === True
+    ordered ds === True
+
+  To locate these problems some desired properties of the phases
+    should be identified and checked for. What should Case abstraction
+    achieve? What should Lambda lifting do? Formulate properties,
+    implement tests, find the problems and fix the implementation.
+
+040928: PJ: debugging translation of the merge example
+  Adding debugging information to CoverTranslator
+
+  Changing Main to dump intermediate state to several files
+
+  Done: made this flag-dependent.
+
+  Done: made dump use pretty-printer
+
+040926: PJ: Trying to prove that an msorted list is ordered
+
+Problem: "Fail: No defaults in CL"
+  This error comes from Core2Cl.c2cAlt at line 205
+  The problem is the "catch all" pattern in the derived Ord
+Solution: replace deriving with explicit definitions
+  (first try: use wild cards - see if they get translated away)
+
+Problem: syntax error in FOL (otter) file: use of (&&) in name
+Compare: similar problem occured in queue with (++) - what is the
+ difference here?
+There is a special case in the translation: Core2Cl.coreToPrelude
+  at line 289 - I added one more special case:
+    Qname "GHC.Base" "++"      -> Qname "" "append"
+(Similarly:  
+  There is a special case in the translation: Core2Agda.coreToPrelude
+    at line 227 - I added one more special case:
+      "GHC.Base.&&"        -> "boolean_and"
+)
+
+Success: now the tool reports: 
+  ++ msort_ordered proved
+I'm not sure what this means, or if it is correct - time to analyse
+  the output from gandalf I guess.
+
+

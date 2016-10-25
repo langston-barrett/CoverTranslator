@@ -1,0 +1,26 @@
+# Option file for Cover related tools
+# (most of them can be overriden by command line flags)
+  
+# Verbosity level (default = 0)
+# verbose = 2
+
+# First order prover to be used (default = gandalf)
+# (authorized values: gandalf, otter)
+# prover = gandalf
+
+# Command to execute ghc (default ghc)
+# ghc = ghc
+
+# Command to execute CoverTranslator (default <install dir>/CoverTranslator)
+# CoverTranslator = CoverTranslator
+
+# Command to execute gandalf (default = gandalf)
+# gandalf = gandalf
+
+# Command to execute otter (default = otter)
+# otter = otter
+
+# Name of the log file (default = cfop.log)
+# logFile = cfop.log
+
+

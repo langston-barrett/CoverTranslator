@@ -1,0 +1,47 @@
+set(prolog_style_variables).
+
+list(usable).
+
+equal(X,X).
+
+% values
+val(pair(X,Y)).
+-isPair(P) | equal(P,pair(fst(P),snd(P))).
+
+% type M a = State -> (a, State)
+
+% bind
+equal(app(app(app(bind,M),K),S1), bind_1(app(M,S1),K)).
+
+equal(bind_1(pair(A,S2),K), app(app(K,A),S2)).
+-val(bind_1(P,K)) | isPair(P).
+
+% return
+equal(app(app(return,A),S), pair(A,S)).
+
+% M equality
+%-equal(F,G) | equal(app(F,X),app(G,X)).
+-equal(app(M1,some_x(M1,M2)),app(M2,some_x(M1,M2))) | m_eq(M1,M2).
+
+end_of_list.
+
+list(sos).
+
+% three monad laws
+
+% m >>= return = m
+%isPair(app(m,X)).
+%-m_eq(app(app(bind,m),return),m).
+
+% return x >>= k = k x
+%-m_eq(app(app(bind,app(return,a)),k),app(k,a)).
+
+% (m >>= k1) >>= k2 = m >>= (\x . k1 x >>= k2)
+isPair(app(m,X)).
+isPair(app(app(k1,X),Y)).
+equal(app(the_lam_expr,X),app(app(bind,app(k1,X)),k2)).
+-m_eq( app(app(bind,app(app(bind,m),k1)),k2)
+     , app(app(bind,m),the_lam_expr)
+     ).
+
+end_of_list.
