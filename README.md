@@ -1,21 +1,14 @@
-# hs2agda
+# CoverTranslator
 
-Note: The work described in this README is aspirational and incomplete.
+This is the work presented in the paper paper 
+["Verifying Haskell Programs Using Constructive Type Theory"][paper]. 
+It is unmodified, and so incompatible with Agda 2.
 
-`hs2agda` is a tool for the formal verification of Haskell code. It converts
-Haskell source code to the equivalent Agda representation, which maintains the
-semantics while allowing for formal reasoning and proofs about program behavior.
-
-It is based on ideas from the
-paper ["Verifying Haskell Programs Using Constructive Type Theory"][paper].
-
-This is a fork of the CoverTranslator project, focused on the `hs2agda` component. 
-The original code targeted Agda 1, while this fork will target Agda 2. The
-first commit to this repo was a faithful copy of CoverTranslator v0.3.
+All credit is due to the authors, the participants in the CoverTranslator
+project. I host this code only because their website is now non-existent.
 
 ## License
 
-The original CoverTranslator project was licensed under the MIT license, and
-this code retains those terms and the copyright notice.
+This code retains the original project license (MIT).
 
 [paper]: http://www2.tcs.ifi.lmu.de/~abel/haskell05.pdf
